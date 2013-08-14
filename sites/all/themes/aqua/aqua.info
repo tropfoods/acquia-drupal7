@@ -1,0 +1,82 @@
+name = Aqua
+description = Aqua theme, developed by <a href="http://tabvn.com/">Tabvn</a>.
+core = 7.x
+
+
+stylesheets[all][] = stylesheets/skeleton.css
+stylesheets[all][] = stylesheets/flexslider.css
+stylesheets[all][] = stylesheets/prettyPhoto.css
+stylesheets[all][] = stylesheets/carousel.css
+stylesheets[all][] = stylesheets/style.css
+stylesheets[all][] = stylesheets/aqua.css
+
+scripts[] = js/jquery.easing.1.3.js
+scripts[] = js/common.js
+scripts[] = js/isotope.js
+scripts[] = js/jquery.flexslider-min.js
+scripts[] = js/jquery.prettyPhoto.js
+scripts[] = js/jquery.jcarousel.min.js
+scripts[] = js/jquery.tipsy.js
+scripts[] = js/jquery.selectnav.js
+scripts[] = js/aqua.js
+
+
+features[] = logo
+features[] = comment_user_picture
+features[] = comment_user_verification
+features[] = favicon
+
+
+
+regions[help] = Help
+regions[header] = Header
+regions[slider] = Slider
+regions[page_top] = Page top
+regions[page_bottom] = Page bottom
+regions[highlighted] = Highlighted
+regions[featured] = Featured
+
+regions[home_services] = Home services
+regions[content] = Content
+regions[sidebar_first] = Sidebar first
+regions[sidebar_second] = Sidebar second
+
+regions[footer_firstcolumn] = Footer first column
+regions[footer_secondcolumn] = Footer second column
+regions[footer_thirdcolumn] = Footer third column
+regions[footer_fourthcolumn] = Footer fourth column
+;regions[footer] = Footer
+
+
+;social links settings
+
+settings[twitter_url] = #
+settings[facebook_url] = #
+settings[pintrest_url] = #
+settings[rss_url] = #
+settings[gplus_url] = #
+
+;header contact info settings
+settings[header_contact_email] = contact@company.com
+settings[header_contact_phone] = + 356 836 2335
+
+;footer copyright message 
+settings[footer_copyright_message] =  <a href="http://tabvn.com" target="_blank">Aqua</a> © 2012 &nbsp; | &nbsp; <a href="http://www.tabvn.com" target="_blank">Tabvn</a>
+
+;porfolio
+settings[default_portfolio] = 4c
+settings[default_nodes_portfolio] = 12
+
+settings[contact_form_description] = <h2 class="title"><span>Contact Form</span></h2><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur vestibulum elementum arcu, at facilisis leo pretium eget. Nulla lacus risus, aliquam id faucibus sit amet, imperdiet vitae quam.</p>
+
+settings[menu_style] = dark
+settings[menu_font] = Open Sans
+settings[button_font] = Open Sans
+settings[menu_color] = #0AD1E5
+settings[menu_font_size] = 15px
+settings[main_color] = #0AD1E5
+settings[title_font] = Open Sans
+settings[body_font] = Open Sans
+settings[wrapper_style] = boxed
+settings[bg_image] = main_bgr.png
+settings[bg_color] = #F6F6F6
