@@ -143,13 +143,15 @@ function taxonomy_menu_block_block_view($delta = '') {
  *   of our tree
  */
 function taxonomy_menu_block_build($config) {
-
+  // Initialize.
   $tree = array();
-  $data['content'] = '';
   $parent = NULL;
+  $data['content'] = '';
+  $data['subject'] = '';
 
   // Get tree.
-  $tree = taxonomy_menu_block_get_tree($config['vid']);
+  $taxonomy = taxonomy_menu_block_get_taxonomy($config['vid']);
+  $tree = $taxonomy['tree'];
 
   // Find active tid.
   $tid = taxonomy_menu_block_find_active_tid($tree, $config['vid']);
@@ -183,12 +185,23 @@ function taxonomy_menu_block_build($config) {
     }
     else {
       $parent = $tid;
+      // Store depth for later use.
+      $parent_depth = $tree[$parent]['depth'];
     }
 
     // Since we know we have an active tid, we should have a parent.
     if (!$parent) {
       return;
     }
+  }
+
+  // Set title of block. Do it now when we still have the full tree, in case of
+  // a valid parent.
+  if ($parent) {
+    $data['subject'] = $tree[$parent]['name'];
+  }
+  else {
+    $data['subject'] = $taxonomy['name'];
   }
 
   // Trim tree to one branch.
@@ -223,9 +236,15 @@ function taxonomy_menu_block_build($config) {
 
   // Depth trim. Always do this last as to not lose the active trail.
   if ($config['depth'] != '0') {
-    // Substract one of our max depth because Drupal considers 0 to be
-    // the root level.
-    $max_depth = $config['depth'] - 1;
+    if ($config['parent'] == 2 && $config['parent_dynamic'] == 0) {
+      // Depth is relative to the parent term's depth.
+      $max_depth = $parent_depth + $config['depth'];
+    }
+    else {
+      // Depth is relative to the root. Substract one of our max depth
+      // because Drupal considers 0 to be the root level.
+      $max_depth = $config['depth'] - 1;
+    }
 
     $temp_tree = array();
     foreach ($tree as $tid => $term) {
@@ -233,12 +252,23 @@ function taxonomy_menu_block_build($config) {
         $temp_tree[$tid] = $term;
       }
     }
+
     if ($temp_tree) {
       $tree = $temp_tree;
     }
     else {
       return;
     }
+  }
+
+  // If we have to add the number of nodes attached to each term.
+  if ($config['nodes']) {
+    $tree = taxonomy_menu_block_nodes($tree, $config);
+  }
+
+  // If we have to remove the terms with no nodes attached.
+  if ($config['hide_empty']) {
+    $tree = taxonomy_menu_block_hide_empty($tree, $config);
   }
 
   // Last check. If we for some reason still don't have a built tree, bail.
@@ -263,8 +293,9 @@ function taxonomy_menu_block_build($config) {
     $tree = $home_link + $tree;
   }
 
-  // Let other modules alter the taxonomy tree data.
-  drupal_alter('taxonomy_menu_block_tree', $tree, $config);
+  // Let other modules alter the taxonomy tree data after all the processing has
+  // been done.
+  drupal_alter('taxonomy_menu_block', $tree, $config);
 
   // Nest tree.
   // If we have a parent, pass along parent.
@@ -276,7 +307,11 @@ function taxonomy_menu_block_build($config) {
   }
 
   // Theme tree.
-  $data['content'] = theme('taxonomy_menu_block', array('items' => $tree, 'config' => $config));
+  $data['content'] = array(
+    '#items' => $tree,
+    '#config' => $config,
+    '#theme' => 'taxonomy_menu_block__' . $config['delta'],
+  );
 
   return $data;
 }
@@ -302,6 +337,9 @@ function taxonomy_menu_block_get_config($delta = NULL) {
     'parent_dynamic' => 1,
     'depth' => 0,
     'home_link' => 0,
+    'nodes' => 0,
+    'nodes_aggregation' => 0,
+    'hide_empty' => 0,
   );
 
   // Get the block configuration options.
@@ -325,10 +363,9 @@ function taxonomy_menu_block_get_name($delta) {
 }
 
 /**
- * Generate taxonomy tree, taking into account i18n.
+ * Get taxonomy tree & name, taking into account i18n.
  */
-function taxonomy_menu_block_get_tree($vid) {
-
+function taxonomy_menu_block_get_taxonomy($vid) {
   if (module_exists('i18n_taxonomy')) {
     global $language;
     $lang = $language->language;
@@ -337,42 +374,52 @@ function taxonomy_menu_block_get_tree($vid) {
     $cache = cache_get('taxonomy_menu_block-' . $vid . '-' . $lang);
 
     if ($cache) {
-      $tree = $cache->data;
+      $taxonomy = $cache->data;
     }
     else {
-      $data = i18n_taxonomy_get_tree($vid, $lang);
+      $taxonomy = array();
 
+      $vocab = taxonomy_vocabulary_load($vid);
+      $taxonomy['name'] = i18n_taxonomy_vocabulary_name($vocab, $lang);
+
+      $tree = i18n_taxonomy_get_tree($vid, $lang);
       // If data is empty, we have a vocabulary that is set to Translate or
       // Fixed but none of the terms are actually translated
       // (in the current language).
       // Or the vacobulary is set to localize.
-      if (empty($data)) {
-        $data = i18n_taxonomy_localize_terms(i18n_taxonomy_get_tree($vid, 'und'));
+      if (empty($tree)) {
+        $tree = i18n_taxonomy_localize_terms(i18n_taxonomy_get_tree($vid, 'und'));
       }
+      $taxonomy['tree'] = taxonomy_menu_block_structure_tree($tree, $vid, $lang);
 
-      $tree = taxonomy_menu_block_structure_tree($data, $lang);
-      $cache = cache_set('taxonomy_menu_block-' . $vid . '-' . $lang, $tree);
+      $cache = cache_set('taxonomy_menu_block-' . $vid . '-' . $lang, $taxonomy);
     }
   }
   else {
     $cache = cache_get('taxonomy_menu_block-' . $vid);
     if (!$cache) {
-      $data = taxonomy_get_tree($vid);
-      $tree = taxonomy_menu_block_structure_tree($data);
-      $cache = cache_set('taxonomy_menu_block-' . $vid, $tree);
+      $taxonomy = array();
+
+      $vocab = taxonomy_vocabulary_load($vid);
+      $taxonomy['name'] = $vocab->name;
+
+      $tree = taxonomy_get_tree($vid);
+      $taxonomy['tree'] = taxonomy_menu_block_structure_tree($tree, $vid);
+
+      $cache = cache_set('taxonomy_menu_block-' . $vid, $taxonomy);
     }
     else {
-      $tree = $cache->data;
+      $taxonomy = $cache->data;
     }
   }
 
-  return $tree;
+  return $taxonomy;
 }
 
 /**
  * Structure tree with only the info we need.
  */
-function taxonomy_menu_block_structure_tree($data, $lang = NULL) {
+function taxonomy_menu_block_structure_tree($data, $vid, $lang = NULL) {
   $tree = array();
 
   foreach ($data as $term) {
@@ -387,9 +434,13 @@ function taxonomy_menu_block_structure_tree($data, $lang = NULL) {
       $branch['depth'] = $term->depth;
       $branch['parents'] = $term->parents;
       $branch['active_trail'] = '0';
+
       $tree[$term->tid] = $branch;
     }
   }
+
+  // Let other modules alter the tree data before it gets cached.
+  drupal_alter('taxonomy_menu_block_tree', $tree, $vid);
 
   return $tree;
 }
@@ -479,6 +530,194 @@ function taxonomy_menu_block_add_active_trail($tree, $tid = NULL) {
 }
 
 /**
+ * Attach nr. of nodes to each term, plus the optional node options.
+ *
+ * @param type $tree
+ * @param type $config
+ * @return type
+ */
+function taxonomy_menu_block_nodes($tree, $config) {
+  // Get the node count.
+  $tids = array_keys($tree);
+  $nodes = taxonomy_menu_block_get_nodes($tids, $config['vid']);
+
+  // Add the "normal" node count.
+  foreach ($tree as $tid => $term) {
+    $tree[$tid]['nodes'] = 0;
+
+    if (isset($nodes[$tid])) {
+      $tree[$tid]['nodes'] = $nodes[$tid];
+    }
+  }
+
+  // Add the aggregation node count.
+  if ($config['nodes_aggregation']) {
+    foreach ($tree as $tid => $term) {
+      // Only aggregate if we have a parent.
+      if ($term['parents'][0] != '0') {
+        $parent_tid = $term['parents'][0];
+        $tree[$parent_tid]['nodes'] = $tree[$parent_tid]['nodes'] + $term['nodes'];
+      }
+    }
+  }
+
+  return $tree;
+}
+
+/**
+ * Delete the terms with no nodes attached to them.
+ *
+ * @param type $tree
+ * @param type $config
+ */
+function taxonomy_menu_block_hide_empty($tree, $config) {
+  // Get the node count.
+  $tids = array_keys($tree);
+  $nodes = taxonomy_menu_block_get_nodes($tids, $config['vid']);
+
+  // Create helper array with subsequent keys.
+  $helper = array();
+  foreach ($tree as $tid => $term) {
+    $temp = array(
+      'tid' => $tid,
+      'depth' => $term['depth'],
+    );
+    $helper[] = $temp;
+  }
+
+  $branches = array();
+
+  foreach ($helper as $i => $term) {
+    // If the current term has any nodes, set any branches to which this term
+    // may belong to to non-delete
+    if (isset($nodes[$term['tid']])) {
+      foreach ($branches as $b => $branch) {
+        $branches[$b]['delete'] = FALSE;
+      }
+    }
+
+    // Get key for next term.
+    $key = $i + 1;
+    // If we have only one term or at the end of our array.
+    if (!isset($helper[$key])) {
+      if (!isset($nodes[$term['tid']])) {
+        unset($tree[$term['tid']]);
+      }
+    }
+    else {
+      // Get next term.
+      $next = $helper[$key];
+
+      // If current and next term have same depth.
+      if ($term['depth'] == $next['depth']) {
+        if (!isset($nodes[$term['tid']])) {
+          unset($tree[$term['tid']]);
+        }
+      }
+
+      // If next term is higher in depth, we have a new branch.
+      if ($term['depth'] < $next['depth']) {
+        // If we have no nodes, set parent of branch ready for deletion.
+        if (isset($nodes[$term['tid']])) {
+          $branches[$term['tid']] = array(
+            'tid' => $term['tid'],
+            'delete' => FALSE,
+          );
+        }
+        else {
+          $branches[$term['tid']] = array(
+            'tid' => $term['tid'],
+            'delete' => TRUE,
+          );
+        }
+      }
+
+      // If next term is lower in depth, we are at the end of a branch.
+      if ($term['depth'] > $next['depth']) {
+        // Find out how many branches were closed.
+        $depth = $term['depth'] - $next['depth'];
+        for ($i = 0; $i < $depth; $i++) {
+          // Get last open branch.
+          $branch = array_pop($branches);
+          if ($branch['delete']) {
+            unset($tree[$branch['tid']]);
+          }
+        }
+
+        // End of branch always means the current term is not a branch itself.
+        if (!isset($nodes[$term['tid']])) {
+          unset($tree[$term['tid']]);
+        }
+      }
+    }
+  }
+
+  // Check remaining branches
+  foreach ($branches as $b => $branch) {
+    if ($branch['delete']) {
+      unset($tree[$branch['tid']]);
+    }
+  }
+
+  return $tree;
+}
+
+/**
+ * Get the number of nodes attached to the terms of a vocabulary.
+ *
+ * We try to keep this as performant as possible by doing one query for all the
+ * terms in a vocabulary, which we will then cache.
+ */
+function taxonomy_menu_block_get_nodes($tids, $vid) {
+  $nodes = array();
+
+  // First check if our vocabulary is set to localize. If this is the case
+  // nodes in different languages will be attached to the same tid.
+  if (module_exists('i18n_taxonomy') && i18n_taxonomy_vocabulary_mode($vid) == 1) {
+    global $language;
+    $lang = $language->language;
+
+    // First check if we have the result in cache already.
+    $cache = cache_get('taxonomy_menu_block-' . $vid . '-nodes-' . $lang);
+
+    if ($cache) {
+      $nodes = $cache->data;
+    }
+    else {
+      $nodes = db_query("
+      SELECT t.tid, count(*)
+      FROM {taxonomy_index} t
+      INNER JOIN {node} n
+      ON t.nid = n.nid
+      WHERE t.tid IN (:tids)
+      AND n.language = :lang
+      GROUP BY t.tid", array(':tids' => $tids, ':lang' => $lang));
+
+      $nodes = $nodes->fetchAllKeyed();
+
+      $cache = cache_set('taxonomy_menu_block-' . $vid . '-nodes-' . $lang, $nodes);
+    }
+  }
+  else {
+    $cache = cache_get('taxonomy_menu_block-' . $vid . '-nodes');
+
+    if ($cache) {
+      $nodes = $cache->data;
+    }
+    else {
+      // Here we don't need to take language in account. Every term has its own
+      // tid.
+      $nodes = db_query("SELECT tid, count(*) FROM {taxonomy_index} WHERE tid IN (:tids) GROUP BY tid", array(':tids' => $tids));
+      $nodes = $nodes->fetchAllKeyed();
+
+      $cache = cache_set('taxonomy_menu_block-' . $vid . '-nodes', $nodes);
+    }
+  }
+
+  return $nodes;
+}
+
+/**
  * Nest tree.
  */
 function taxonomy_menu_block_nest_tree($tree, $root = '0') {
@@ -526,17 +765,34 @@ function theme_taxonomy_menu_block($variables) {
       $attributes['class'][] = 'active';
     }
 
+    // Alter link text if we have to display the nodes attached.
+    if (isset($term['nodes'])) {
+      $term['name'] = $term['name'] . ' (' . $term['nodes'] . ')';
+    }
+
     // Set alias option to true so we don't have to query for the alias every
     // time, as this is cached anyway.
     $output .= '<li' . drupal_attributes($attributes) . '>' . l($term['name'], $term['path'], $options = array('alias' => TRUE));
     if (!empty($term['children'])) {
-      $output .= theme_taxonomy_menu_block(array('items' => $term['children'], 'config' => $config));
+      $output .= theme('taxonomy_menu_block__' . $config['delta'], (array('items' => $term['children'], 'config' => $config)));
     }
     $output .= '</li>';
   }
   $output .= '</ul>';
 
   return $output;
+}
+
+/**
+ * Implements hook_entity_insert().
+ */
+function taxonomy_menu_block_entity_insert($entity, $type) {
+  switch ($type) {
+    case 'taxonomy_term':
+      // Clear cache for this vocabulary.
+      cache_clear_all('taxonomy_menu_block-' . $entity->vid, 'cache', TRUE);
+      break;
+  }
 }
 
 /**
@@ -547,8 +803,7 @@ function taxonomy_menu_block_entity_update($entity, $type) {
     case 'taxonomy_vocabulary':
     case 'taxonomy_term':
       // Clear cache for this vocabulary.
-      $cache_name = 'taxonomy_menu_block-' . $entity->vid;
-      db_query("DELETE FROM {cache} WHERE cid LIKE :block", array(':block' => db_like($cache_name) . '%'));
+      cache_clear_all('taxonomy_menu_block-' . $entity->vid, 'cache', TRUE);
       break;
   }
 }
@@ -561,10 +816,18 @@ function taxonomy_menu_block_entity_delete($entity, $type) {
     case 'taxonomy_vocabulary':
     case 'taxonomy_term':
       // Clear cache for this vocabulary.
-      $cache_name = 'taxonomy_menu_block-' . $entity->vid;
-      db_query("DELETE FROM {cache} WHERE cid LIKE :block", array(':block' => db_like($cache_name) . '%'));
+      cache_clear_all('taxonomy_menu_block-' . $entity->vid, 'cache', TRUE);
       break;
   }
+}
+
+/**
+ * Implements hook_path_alias_types().
+ */
+function taxonomy_menu_block_path_alias_types() {
+  // Clear cache. There's no way of knowing if taxonomy paths have been deleted
+  // so we clear all TMB caches.
+  cache_clear_all('taxonomy_menu_block-', 'cache', TRUE);
 }
 
 /**
