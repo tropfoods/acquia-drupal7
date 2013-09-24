@@ -115,8 +115,9 @@ body {
 
 
 	background-color: #fff;
-
-	font: 13px/20px 'OpenSansRegular';
+    
+    /*font: 16px/26px 'OpenSansRegular';*/
+	font: 16px/26px 'OpenSansRegular';
 	color: #65686d;
 }
 
@@ -558,9 +559,9 @@ h1, h2, h3, h4, h5, h6 {
 	color: #313538;
 }
 
-h1 { font: 38px/38px 'OpenSansRegular';}
-h2 { font: 22px 'OpenSansSemiboldRegular'; }
-h3 { font: 18px 'OpenSansSemiboldRegular'; }
+h1 { font: 42px/42px 'OpenSansRegular';}
+h2 { font: 26px 'OpenSansSemiboldRegular'; }
+h3 { font: 20px 'OpenSansSemiboldRegular'; }
 h4 { font: 16px 'OpenSansSemiboldRegular';}
 h5 { font: 14px 'OpenSansSemiboldRegular';}
 h6 { font: 12px 'OpenSansBold'; text-transform: uppercase;}
