@@ -44,3 +44,4 @@ Functionalities:
 * Works on multilingual sites
 * Ability to alter rendered data through hooks, see .api.php file
 * Lightweight because of smart caching
+

@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the Boson Features feature.
+ */
+
+include_once 'boson_features.features.inc';

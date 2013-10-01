@@ -6,10 +6,11 @@
  */
 
 /**
- * Alter data of the taxonomy tree.
- *
- * Alter data of the taxonomy tree before the tree gets nested and sent to the
- * theme function.
+ * Alter data of the taxonomy tree before it gets cached.
+ * 
+ * Here you can add your own data, for example a photo per term. Since this hook
+ * is called before all data gets cached, your newly added data will get cached
+ * as well, which is good for performance.
  *
  * @param array $tree
  *   A flat array of taxonomy terms, keyed by their tid. It's very important
@@ -18,19 +19,28 @@
  *   The order of the terms is still the same as when returned by the
  *   taxonomy_get_tree() function.
  * 
- * @param array $config
- *   An array containing configuration of current block.
+ * @param int $vid
+ *   Taxonomy vocabulary id.
  */
-function hook_taxonomy_tree_alter(&$tree, &$config) {
-  // Add the number of nodes associated with each term.
-  foreach ($tree as $tid => $term) {
-    $nodes = db_select('taxonomy_index', 'ti')
-        ->condition('tid', (int) $tid)
-        ->countQuery()
-        ->execute()
-        ->fetchField();
-    $tree[$tid]['name'] = $term['name'] . ' (' . $nodes . ')';
-  }
+function hook_taxonomy_menu_block_tree_alter(&$tree, $config) {
+
+}
+
+/**
+ * Alter cached data of the taxonomy tree.
+ * 
+ * Alter stuff before the tree gets nested and sent to the theme function. All 
+ * possible edits by the Taxonomy Menu Block module have been done at this
+ * point.
+ *
+ * @param array $tree
+ *   See above.
+ * 
+ * @param array $config
+ *   Array with configuration options.
+ */
+function hook_taxonomy_menu_block_alter(&$tree, $vid) {
+
 }
 
 /**
@@ -50,7 +60,7 @@ function hook_taxonomy_tree_alter(&$tree, &$config) {
  * @param array $config
  *   An array containing configuration of current block.
  */
-function hook_active_tid_alter(&$tid, &$config) {
+function hook_taxonomy_menu_block_active_tid_alter(&$tid, &$config) {
   // Add support for a custom page we have defined in our Drupal setup, for
   // example with Views: www.site.com/custom/page/tid.
   if (arg(0) == 'custom' && arg(1) == 'page') {
