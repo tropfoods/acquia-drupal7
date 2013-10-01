@@ -40,10 +40,18 @@ function _taxonomy_menu_block_add_block_form_validate($form, &$form_state) {
       break;
 
     case '1':
+      $terms = taxonomy_menu_block_get_taxonomy($values['vid']);
+      $terms = $terms['tree'];
+
+      // If we can't find the term. Mostly because there are no terms in
+      // the vocabulary yet (in the current language).
+      if (!isset($terms[$values['parent_fixed']])) {
+        form_set_error('parent_fixed', t('No valid parent selected.'));
+        return;
+      }
+
       // Depth must be higher than the depth of Fixed parent.
-      // First get the depth of the term.
-      $term = taxonomy_menu_block_get_tree($values['vid']);
-      $term = $term[$values['parent_fixed']];
+      $term = $terms[$values['parent_fixed']];
       if ($values['depth'] != '0' && ($term['depth'] + 1) >= $values['depth']) {
         form_set_error('depth', t('Depth must be higher than the depth of your selected Fixed parent.'));
       }
@@ -132,6 +140,9 @@ function taxonomy_menu_block_save_block($delta = '', $values = array()) {
     $taxonomy_menu_block['parent_dynamic'] = $values['parent_dynamic'];
     $taxonomy_menu_block['depth'] = $values['depth'];
     $taxonomy_menu_block['home_link'] = $values['home_link'];
+    $taxonomy_menu_block['nodes'] = $values['nodes'];
+    $taxonomy_menu_block['nodes_aggregation'] = $values['nodes_aggregation'];
+    $taxonomy_menu_block['hide_empty'] = $values['hide_empty'];
 
     variable_set("taxonomy_menu_block_{$delta}", $taxonomy_menu_block);
   }
@@ -224,7 +235,7 @@ function _taxonomy_menu_block_form_options(&$form, &$form_state) {
     '#type' => 'textfield',
     '#default_value' => $config['admin_title'],
     '#title' => t('Administrative title'),
-    '#description' => t('This title will be used administratively to identify this block. If blank, "Taxonomy Menu Block" will be used'),
+    '#description' => t('This title will be used administratively to identify this block. If blank, "Taxonomy Menu Block" will be used.'),
   );
 
   $form['settings']['vid'] = array(
@@ -254,7 +265,7 @@ function _taxonomy_menu_block_form_options(&$form, &$form_state) {
   $form['settings']['parent_fixed'] = array(
     '#type' => 'select',
     '#title' => t('Select a parent'),
-    '#description' => t('Select a taxonomy term from your chosen vocabulary'),
+    '#description' => t('Select a taxonomy term from your chosen vocabulary. An empty list means you have no terms in this vocabulary (for the current language).'),
     '#prefix' => '<div id="dropdown-fixed-parent">',
     '#suffix' => '</div>',
     '#options' => $parents_fixed,
@@ -264,8 +275,7 @@ function _taxonomy_menu_block_form_options(&$form, &$form_state) {
   $form['settings']['parent_dynamic'] = array(
     '#type' => 'select',
     '#title' => t('Select a parent level'),
-    '#description' => t('Choose a parent option for this tree. Default is 1,
-      meaning the tree will show everything under the first level of your
+    '#description' => t('Choose a parent option for this tree. Default is 1, meaning the tree will show everything under the first level of your
       taxonomy tree. Make sure this is lower than your depth!'),
     '#default_value' => $config['parent_dynamic'],
     '#options' => array(
@@ -285,7 +295,7 @@ function _taxonomy_menu_block_form_options(&$form, &$form_state) {
   $form['settings']['depth'] = array(
     '#type' => 'select',
     '#title' => t('Depth'),
-    '#description' => t('Specify the maximum depth of the taxonomy tree.'),
+    '#description' => t('Specify the maximum depth of the taxonomy tree. Depth is always relative to the root, except when you choose Dynamic parent > Follow active item, then depth is relative to the active item.'),
     '#default_value' => $config['depth'],
     '#options' => array(
       '1' => '1',
@@ -315,6 +325,27 @@ function _taxonomy_menu_block_form_options(&$form, &$form_state) {
     '#default_value' => $config['home_link'],
   );
 
+  $form['settings']['extras']['nodes'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Display node count.'),
+    '#description' => t('Display number of nodes attached to each term.'),
+    '#default_value' => $config['nodes'],
+  );
+
+  $form['settings']['extras']['nodes_aggregation'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Aggregate node count.'),
+    '#description' => t('Add the node count of children to the node count of their <em>direct</em> parents. For this to work you need to check "Display nodes".'),
+    '#default_value' => $config['nodes_aggregation'],
+  );
+
+  $form['settings']['extras']['hide_empty'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Hide empty.'),
+    '#description' => t('Don\'t display terms with no content attached.'),
+    '#default_value' => $config['hide_empty'],
+  );
+
   $form['settings']['wrapper-close'] = array(
     '#markup' => '</div>',
   );
@@ -336,12 +367,14 @@ function taxonomy_menu_block_ajax_parent_callback($form, $form_state) {
  * @return array
  *   Array of terms of a certain vocabulary.
  */
-function taxonomy_menu_block_get_parents_fixed($vid = NULL) {
+function taxonomy_menu_block_get_parents_fixed($vid = 0) {
 
   $parents_fixed = array();
 
-  if ($vid) {
-    $terms = taxonomy_menu_block_get_tree($vid);
+  $terms = taxonomy_menu_block_get_taxonomy($vid);
+  $terms = $terms['tree'];
+
+  if ($terms) {
     foreach ($terms as $tid => $term) {
       $indent = str_repeat('-', $term['depth']);
       $parents_fixed[$tid] = $indent . ' ' . $term['name'];
