@@ -3728,3 +3728,147 @@ font: 14px/22px 'FontAwesome';
 	color: #fff;
 	text-shadow: 0 -1px 0px #3fa11a;
 }
+/*		                            Taxonomy Menu Block Lists ^
+--------------------------------------------------------------*/
+#block-taxonomy-menu-block-1 {
+	position: relative;
+	margin: 0 0 20px 0;
+	padding: 0;
+
+	list-style: none;
+	line-height: 20px;
+}
+#block-taxonomy-menu-block-1 ul{
+    list-style: none;
+    padding: 0 0 1em 1em;
+    margin: 0 0 0 0;
+}
+
+#block-taxonomy-menu-block-1 li{
+	margin-bottom: 2px;
+}
+
+#block-taxonomy-menu-block-1 li span {
+	display: block;
+	overflow: hidden;
+}
+
+#block-taxonomy-menu-block-1 li i {
+	width: 16px;
+
+	float: left;
+	margin-right: 10px;
+
+	text-align: center;
+	color: #444;
+	font-size: 14px;
+}
+
+#block-taxonomy-menu-block-1.decimal {
+	list-style: decimal inside;
+}
+
+#block-taxonomy-menu-block-1.circle li:before {
+	content: "\f111";
+
+	float: left;
+	margin: 8px 9px 0 0;
+
+	font: 5px 'FontAwesome';
+}
+
+#block-taxonomy-menu-block-1.strong {
+	font-family: 'OpenSansSemiboldRegular';
+	color: #313538;
+}
+
+#block-taxonomy-menu-block-1.iconok li:before, 
+#block-taxonomy-menu-block-1.bancircle li:before, 
+#block-taxonomy-menu-block-1.flagcheckered li:before, 
+#block-taxonomy-menu-block-1.exclamation li:before,
+#block-taxonomy-menu-block-1.info li:before, 
+#block-taxonomy-menu-block-1.question li:before, 
+#block-taxonomy-menu-block-1.leaf li:before, 
+#block-taxonomy-menu-block-1.pencil li:before {
+	float: left;
+	margin: 3px 8px 0 0;
+	font: 14px 'FontAwesome';
+}
+
+#block-taxonomy-menu-block-1.iconok li:before {
+	content: "\f00c";
+	color: #78d53a;
+	text-shadow: 0 1px 3px rgba(120,213,58,0.1);
+}
+
+#block-taxonomy-menu-block-1.bancircle li:before {
+	content: "\f05e";
+	color: #e0563f;
+	text-shadow: 0 1px 3px rgba(224,86,64,0.1);
+}
+
+#block-taxonomy-menu-block-1.flagcheckered li:before {
+	content: "\f11e";
+	color: #e34735;
+	text-shadow: 0 1px 3px rgba(90,190,74,0.1);
+}
+
+#block-taxonomy-menu-block-1.exclamation li:before {
+	content: "\f12a";
+	color: #f2c368;
+	text-shadow: 0 1px 3px rgba(242,195,104,0.1);
+}
+
+#block-taxonomy-menu-block-1.info li:before {
+	content: "\f129";
+	color: #3e7fd7;
+	text-shadow: 0 1px 3px rgba(62,127,215,0.1);
+}
+
+#block-taxonomy-menu-block-1.question li:before {
+	content: "\f128";
+	color: #39c6c8;
+	text-shadow: 0 1px 3px rgba(57,198,200,0.1);
+}
+
+#block-taxonomy-menu-block-1.leaf li:before {
+	content: "\f06c";
+	color: #76de3d;
+	text-shadow: 0 1px 3px rgba(128,222,61,0.1);
+}
+
+#block-taxonomy-menu-block-1.pencil li:before {
+	content: "\f040";
+	color: #f19a34;
+	text-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+#block-taxonomy-menu-block-1.m-circle li {
+	margin-bottom: 10px;
+	line-height: 20px;
+}
+
+#block-taxonomy-menu-block-1.m-circle li:before {
+	width: 20px;
+	height: 20px;
+
+	position: relative;
+	top: -3px;
+
+	background: #e34735  url(../img/btn-bg.png) repeat-x top;
+	border-radius: 50%;
+
+	text-align: center;
+	line-height: 20px;
+	font-size: 10px;
+	color: #fff;
+}
+
+#block-taxonomy-menu-block-1 a {
+	text-decoration: none;
+	color: inherit;
+}
+
+#block-taxonomy-menu-block-1 a:hover {
+	color: #e34735;
+}
